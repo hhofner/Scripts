@@ -7,7 +7,7 @@ import argparse
 
 ################################
 # Create connection with Server
-serverAddress = ('10.82.20.110', 707)
+serverAddress = ('localhost', 707)
 
 clientSocket = socket(AF_INET, SOCK_STREAM)
 try:
