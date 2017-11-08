@@ -1,154 +1,198 @@
 from socket import *
-from random import randint as random
+
 
 import sys
 import time
+import random
 import argparse
 
 ###########################################
-serverPort = 707
+serverPort = 10000
 serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(('',serverPort))
 serverSocket.listen(1)
 ###########################################
 
-entireBoard = 0x1FF
-singleSquare = [(0x100 >> i) for i in range(9)]
+class Tic(object):
+    winning_combos = (
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6])
 
-almostWinPairs = {0x180: singleSquare[0]+singleSquare[1]+singleSquare[2],
-                  0x140: singleSquare[0]+singleSquare[1]+singleSquare[2],
-                  0x0C0: singleSquare[0]+singleSquare[1]+singleSquare[2],
-                  0x030: singleSquare[3]+singleSquare[4]+singleSquare[5],
-                  0x028: singleSquare[3]+singleSquare[4]+singleSquare[5],
-                  0x018: singleSquare[3]+singleSquare[4]+singleSquare[5],
-                  0x006: singleSquare[6]+singleSquare[7]+singleSquare[8],
-                  0x005: singleSquare[6]+singleSquare[7]+singleSquare[8],
-                  0x003: singleSquare[6]+singleSquare[7]+singleSquare[8],
-                  0x120: singleSquare[0]+singleSquare[3]+singleSquare[6],
-                  0x104: singleSquare[0]+singleSquare[3]+singleSquare[6],
-                  0x024: singleSquare[0]+singleSquare[3]+singleSquare[6],
-                  0x090: singleSquare[1]+singleSquare[4]+singleSquare[7],
-                  0x082: singleSquare[1]+singleSquare[4]+singleSquare[7],
-                  0x012: singleSquare[1]+singleSquare[4]+singleSquare[7],
-                  0x048: singleSquare[2]+singleSquare[5]+singleSquare[8],
-                  0x041: singleSquare[2]+singleSquare[5]+singleSquare[8],
-                  0x009: singleSquare[2]+singleSquare[5]+singleSquare[8]}
-                  # There are more combo's (diagonals)
+    winners = ('X-win', 'Draw', 'O-win')
 
-serverBoard = 0x000
-clientBoard = 0x000
-
-def chooseRandomMove(sBoard, cBoard):
-    global entireBoard
-    serverBoard = sBoard; clientBoard = cBoard
-
-    # Check if game is over
-    if ((serverBoard|clientBoard) & entireBoard) == entireBoard:
-        return 'Game over'
-    else:
-        ttl = 50
-        while(ttl > 0):
-            temp = 0x100 >> random(0,8)
-            if temp & (serverBoard|clientBoard) == 0:
-                return (serverBoard|temp)
-            ttt = ttl - 1
-        return('Time out')
-
-# Constructs a valid string from bitboards
-def construct(serverBoard, clientBoard):
-    board = [['-','-','-'],['-','-','-'],['-','-','-']]
-    for row in range(3):
-        if clientBoard & (0x100 >> (row*3)) > 0:
-            board[row][0] = 'X'
-        elif serverBoard & (0x100 >> (row*3)) > 0:
-            board[row][0] = 'O'
-
-        if clientBoard & (0x100 >> (row*3 + 1)) > 0:
-            board[row][1] = 'X'
-        elif serverBoard & (0x100 >> (row*3 + 1)) > 0:
-            board[row][1] = 'O'
-
-        if clientBoard & (0x100 >> (row*3 + 2)) > 0:
-            board[row][2] = 'X'
-        elif serverBoard & (0x100 >> (row*3 + 2)) > 0:
-            board[row][2] = 'O'
-
-    stringBoard = ''
-    pipeCount = 2
-    for row in board:
-        for elem in row:
-            stringBoard += elem
-        if pipeCount > 0:
-            stringBoard += '|'
-            pipeCount -= 1
-
-    stringBoard += '\n'
-    return stringBoard
-
-# This parses the response from server
-# from string to bitboards
-def deconstruct(board):
-    serverBoard = 0x000
-    clientBoard = 0x000
-    if board.lower() == 'illegal':
-        # Do something
-        pass
-    else:
-        dec = board.split('|')
-        if len(dec) > 3:
-            raise Exception('Illegal')  # TODO: Do something else
+    def __init__(self, squares=[]):
+        if len(squares) == 0:
+            self.squares = [None for i in range(9)]
         else:
-            for i in range(3):
-                if dec[i][0] == 'X':
-                    clientBoard = clientBoard | (0x100 >> (i*3))
-                if dec[i][1] == 'X':
-                    clientBoard = clientBoard | (0x100 >> (i*3 + 1))
-                if dec[i][2] == 'X':
-                    clientBoard = clientBoard | (0x100 >> (i*3 + 2))
+            self.squares = squares
 
-                if dec[i][0] == 'O':
-                    serverBoard = serverBoard | (0x100 >> (i*3))
-                if dec[i][1] == 'O':
-                    serverBoard = serverBoard | (0x100 >> (i*3 + 1))
-                if dec[i][2] == 'O':
-                    serverBoard = serverBoard | (0x100 >> (i*3 + 2))
-        return (serverBoard, clientBoard)
+    def show(self):
+        stringBoard = ''
+        counter = 1
+        for element in self.squares:
+            if counter == 4 or counter == 8:
+                stringBoard += '|'
+                counter += 1
+            if element == None:
+                stringBoard += '-'
+                counter += 1
+            elif element == 'X':
+                stringBoard += 'X'
+                counter += 1
+            elif element == 'O':
+                stringBoard += 'O'
+                counter += 1
+        # stringBoard += '\n'
+        return stringBoard
+
+    def available_moves(self):
+        """what spots are left empty?"""
+        return [k for k, v in enumerate(self.squares) if v is None]
+
+    def available_combos(self, player):
+        """what combos are available?"""
+        return self.available_moves() + self.get_squares(player)
+
+    def complete(self):
+        """is the game over?"""
+        if None not in [v for v in self.squares]:
+            return True
+        if self.winner() != None:
+            return True
+        return False
+
+    def X_won(self):
+        return self.winner() == 'X'
+
+    def O_won(self):
+        return self.winner() == 'O'
+
+    def tied(self):
+        return self.complete() == True and self.winner() is None
+
+    def winner(self):
+        for player in ('X', 'O'):
+            positions = self.get_squares(player)
+            for combo in self.winning_combos:
+                win = True
+                for pos in combo:
+                    if pos not in positions:
+                        win = False
+                if win:
+                    return player
+        return None
+
+    def get_squares(self, player):
+        """squares that belong to a player"""
+        return [k for k, v in enumerate(self.squares) if v == player]
+
+    def make_move(self, position, player):
+        """place on square on the board"""
+        self.squares[position] = player
+
+    def alphabeta(self, node, player, alpha, beta):
+        if node.complete():
+            if node.X_won():
+                return -1
+            elif node.tied():
+                return 0
+            elif node.O_won():
+                return 1
+        for move in node.available_moves():
+            node.make_move(move, player)
+            val = self.alphabeta(node, get_enemy(player), alpha, beta)
+            node.make_move(move, None)
+            if player == 'O':
+                if val > alpha:
+                    alpha = val
+                if alpha >= beta:
+                    return beta
+            else:
+                if val < beta:
+                    beta = val
+                if beta <= alpha:
+                    return alpha
+        if player == 'O':
+            return alpha
+        else:
+            return beta
+
+
+def determine(board, player):
+    a = -2
+    choices = []
+    if len(board.available_moves()) == 9:
+        return 4
+    for move in board.available_moves():
+        board.make_move(move, player)
+        val = board.alphabeta(board, get_enemy(player), -2, 2)
+        board.make_move(move, None)
+        print "move:", move + 1, "causes:", board.winners[val + 1]
+        if val > a:
+            a = val
+            choices = [move]
+        elif val == a:
+            choices.append(move)
+    return random.choice(choices)
+
+
+def get_enemy(player):
+    if player == 'X':
+        return 'O'
+    return 'X'
+
+# Returns an integer
+def deconstruct(board, previousBoard):
+    sq = board.split('|')
+    if previousBoard == '':
+        for i in range(3):
+            if not sq[i][0] == '-': return (i*3)
+            if not sq[i][1] == '-': return (i*3+1)
+            if not sq[i][2] == '-': return (i*3+2)
+    sq2 = previousBoard.split('|')            
+    for i in range(3):
+        if not sq[i][0] == sq2[i][0]: return (i*3)
+        elif not sq[i][1] == sq2[i][1]: return (i*3+1)
+        elif not sq[i][2] == sq2[i][2]: return (i*3+2)
 
 print 'The server is ready to receive'
 connectionSocket, addr = serverSocket.accept()
-while 1:
-    time.sleep(2)
+board = Tic()
+
+previousBoard = ''
+while not board.complete():
+    player = 'X'
     clientResponse = connectionSocket.recv(2048)
-    print(clientResponse)
+    print('Received: ' + clientResponse)
+    client_move = deconstruct(clientResponse, previousBoard)
+
     if 'illegal' in (clientResponse.lower()):
+        print('Illegal move, conn. closed')
+        connectionSocket.send('Illegal move, connection closed')
         connectionSocket.close()
+        break
     elif 'game over' in clientResponse.lower():
-        print('Game over')
+        print('Game over, conn. closed')
         connectionSocket.send('Game over')
         connectionSocket.close()
         break
-    else:
-        try:
-            bitboards = deconstruct(clientResponse)
-        except Exception:
-            print('Illegal response')
-            connectionSocket.send('Illegal response')
-            connectionSocket.close()
-            break
-        else:
-            serverBoard = bitboards[0]
-            clientBoard = bitboards[1]
+    
+    if not client_move in board.available_moves():
+        continue
+    board.make_move(client_move, player)
 
-            # make move here
-            serverBoard = chooseRandomMove(serverBoard, clientBoard)
-            if serverBoard == 'Game over' or serverBoard == 'Time out':
-                print(serverBoard)
-                connectionSocket.send(serverBoard)
-                connectionSocket.close()
-                break
-            else:
-                stringBoard = construct(serverBoard, clientBoard)
-                print(stringBoard)
-                connectionSocket.send(stringBoard)
+    if board.complete():
+        print(board.winner())
+        connectionSocket.close()
+        break  # TODO: HERE!!!
+    player = get_enemy(player)
+    server_move = determine(board, player)
+    board.make_move(server_move, player)
+    previousBoard = board.show()
+    print('Sent: ' + board.show())
+    connectionSocket.send(board.show())
 
+print(board.winner() + ' won')
+connectionSocket.close()
 # connectionSocket.close()
