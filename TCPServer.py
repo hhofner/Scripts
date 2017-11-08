@@ -183,8 +183,6 @@ while not board.complete():
     board.make_move(client_move, player)
 
     if board.complete():
-        print(board.winner())
-        connectionSocket.close()
         break  # TODO: HERE!!!
     player = get_enemy(player)
     server_move = determine(board, player)
@@ -193,6 +191,10 @@ while not board.complete():
     print('Sent: ' + board.show())
     connectionSocket.send(board.show())
 
-print(board.winner() + ' won')
+try:
+    print(board.winner() + ' won')
+except:
+    if board.winner() == None:
+        print('tie')
 connectionSocket.close()
 # connectionSocket.close()
