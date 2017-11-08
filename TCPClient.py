@@ -99,16 +99,16 @@ class Tic(object):
     def alphabeta(self, node, player, alpha, beta):
         if node.complete():
             if node.X_won():
-                return -1
+                return 1
             elif node.tied():
                 return 0
             elif node.O_won():
-                return 1
+                return -1
         for move in node.available_moves():
             node.make_move(move, player)
             val = self.alphabeta(node, get_enemy(player), alpha, beta)
             node.make_move(move, None)
-            if player == 'O':
+            if player == 'X':
                 if val > alpha:
                     alpha = val
                 if alpha >= beta:
@@ -118,7 +118,7 @@ class Tic(object):
                     beta = val
                 if beta <= alpha:
                     return alpha
-        if player == 'O':
+        if player == 'X':
             return alpha
         else:
             return beta
@@ -128,7 +128,7 @@ def determine(board, player):
     a = -2
     choices = []
     if len(board.available_moves()) == 9:
-        return 4
+        return random.randint(0,9)
     for move in board.available_moves():
         board.make_move(move, player)
         val = board.alphabeta(board, get_enemy(player), -2, 2)
@@ -144,7 +144,8 @@ def determine(board, player):
 def get_enemy(player):
     if player == 'X':
         return 'O'
-    return 'X'
+    elif player == 'O':
+        return 'X'
 
 # Returns an int
 def deconstruct(board, previousBoard):
@@ -164,7 +165,7 @@ while not board.complete():
     player = 'O'
     if first:
         player = 'X'
-        client_move = random.randint(0,8)
+        client_move = determine(board, player)
         board.make_move(client_move, player)
         print('Sent: ' + board.show())
         clientSocket.send(board.show())
@@ -192,8 +193,6 @@ while not board.complete():
     board.make_move(server_move, player)
 
     if board.complete():
-        print(board.winner() + ' won')
-        clientSocket.close()
         break  # TODO: HERE!!!!!!
     player = get_enemy(player)
     client_move = determine(board, player)
@@ -202,4 +201,9 @@ while not board.complete():
     print('Sent: ' + board.show())
     clientSocket.send(board.show())
 
+try:
+    print(board.winner() + ' won')
+except:
+    if board.winner() == None:
+        print('tie')
 clientSocket.close()
