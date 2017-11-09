@@ -3,11 +3,15 @@
 
 ### TCP Tic-Tac-Toe
 Files: 
-  * TCPServer.py
-  * TCPClient.py
+  * TTTServer.py
+  * TTTClient.py
 
-Run these two files on 'localhost' and whatever port you may prefer
-and see AI's play Tic Tac Toe.
+Run these two files and see AI's play Tic Tac Toe.
+You may edit the ports on each file to whatever ports you may prefer.
+TTTClient expects a commandline argument of the serverAddress.
+
+These two scripts use an Alpha-Beta probing algorithm, so they always
+play a tie, as they are perfect players. 
 
 ### Ruby Secret Santa
 File(s):
