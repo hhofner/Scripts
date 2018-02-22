@@ -30,7 +30,7 @@ Run the Ruby script, and it will ask for participants name and email.
 File(s):
   * plot_home_wins.py
 
-Using the de-deutschland database for Bundesliga matches, plot the last 5
+Using the [de-deutschland](https://github.com/openfootball/de-deutschland) database for Bundesliga matches, plot the last 5
 home match results against whatever team.
 
 Example for Nordderby: 
