@@ -25,3 +25,14 @@ In the options dictionary, enter your email domain, username and password (for G
 you will have to "unlock" some setting temporarily). 
 
 Run the Ruby script, and it will ask for participants name and email. 
+
+### Plotting Bundesliga Home Wins against a certain team
+File(s):
+  * plot_home_wins.py
+
+Using the de-deutschland database for Bundesliga matches, plot the last 5
+home match results against whatever team.
+
+Example for Nordderby: 
+
+![alt-text](https://github.com/hhofner/Scripts/blob/master/img/better_bremen_hsv.png "Nordderby")
