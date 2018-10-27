@@ -48,3 +48,11 @@ lost motivation to do anything better with it. Image below of PSG vs. Real Madri
 match thread:
 
 ![psg_rm](https://github.com/hhofner/Scripts/blob/master/img/psg.png "PSG WordCloud")
+
+### Plotting PPS Data from Nullpomino Application
+File(s):
+  * plot_pps.py
+  
+This script plots your previous played games PPS (Piece per Second) data from Nullpomino (A Tetris Desktop game). It's highly tailored to mine (note the "no data available" section), but can perhaps be easily fixed to your liking. The plot:
+
+![pps](https://github.com/hhofner/Scripts/blob/master/pps_record_oct27.png)
